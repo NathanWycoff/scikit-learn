@@ -603,6 +603,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         result = LDA_Results()
         
         result.GAMMA = doc_topic_distr
+        result.BETA = np.log(self.exp_dirichlet_component_)
         
         return result
 
