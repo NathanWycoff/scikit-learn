@@ -290,7 +290,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             raise ValueError("Invalid 'learning_method' parameter: %r"
                              % self.learning_method)
 
-    def _init_latent_vars(self, n_features):
+    def _init_latent_vars(self, n_features, BETA_init = None):
         """Initialize latent variables."""
 
         self.random_state_ = check_random_state(self.random_state)
@@ -310,8 +310,11 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         init_gamma = 100.
         init_var = 1. / init_gamma
         # In the literature, this is called `lambda`
-        self.components_ = self.random_state_.gamma(
-            init_gamma, init_var, (self.n_topics, n_features))
+        if BETA_init is None:
+            self.components_ = self.random_state_.gamma(
+                init_gamma, init_var, (self.n_topics, n_features))
+        else:
+            self.components_ = BETA_init
 
         # In the literature, this is `exp(E[log(beta)])`
         self.exp_dirichlet_component_ = np.exp(
@@ -471,7 +474,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         return self
 
-    def fit(self, X, y=None, weights = None):
+    def fit(self, X, y=None, weights = None, BETA_init = None):
         """Learn model for the data X with variational Bayes method.
         When `learning_method` is 'online', use mini-batch update.
         Otherwise, use batch update.
@@ -507,7 +510,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         batch_size = self.batch_size
 
         # initialize parameters
-        self._init_latent_vars(n_features)
+        self._init_latent_vars(n_features, BETA_init = BETA_init)
         # change to perplexity later
         last_bound = None
         n_jobs = _get_n_jobs(self.n_jobs)
