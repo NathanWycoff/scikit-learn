@@ -315,10 +315,13 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 init_gamma, init_var, (self.n_topics, n_features))
         else:
             self.components_ = BETA_init
+            print "Initial Beta Comps" + str(self.components_)
 
         # In the literature, this is `exp(E[log(beta)])`
         self.exp_dirichlet_component_ = np.exp(
             _dirichlet_expectation_2d(self.components_))
+        
+        print "Init exp " + str(self.exp_dirichlet_component_)
 
     def _e_step(self, X, cal_sstats, random_init, parallel=None, weights = None):
         """E-step in EM update.
@@ -404,8 +407,8 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         if weights is None:
             weights = np.repeat(1.0, np.shape(X)[1])
             
-        # E-step
-        _, suff_stats = self._e_step(X, cal_sstats=True, random_init=True,
+        # E-step, make the init non-random
+        _, suff_stats = self._e_step(X, cal_sstats=True, random_init=False,
                                      parallel=parallel, weights = weights)
         # M-step
         if batch_update:
@@ -607,6 +610,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         
         result.GAMMA = doc_topic_distr
         result.BETA = self.components_
+        result.BETA_exp = self.exp_dirichlet_component_
         
         return result
 
