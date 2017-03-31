@@ -602,7 +602,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         #Store the results
         result = LDA_Results()
         
-        result.BETA = doc_topic_distr
+        result.GAMMA = doc_topic_distr
         
         return result
 
