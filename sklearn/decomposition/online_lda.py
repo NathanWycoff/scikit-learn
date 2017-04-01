@@ -42,7 +42,8 @@ class LDA_Results(object):
 
 def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
                              max_iters,
-                             mean_change_tol, cal_sstats, random_state, weights = None):
+                             mean_change_tol, cal_sstats, random_state, 
+                             weights = None, GAMMA_init = None):
     """E-step: update document-topic distribution.
     Parameters
     ----------
@@ -81,11 +82,14 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
     if weights is None:
         weights = np.repeat(1.0, np.shape(X)[1])
     
-    if random_state:
-        print 'Random Thing 1'
-        doc_topic_distr = random_state.gamma(100., 0.01, (n_samples, n_topics))
+    if GAMMA_init is None:
+        if random_state:
+            print 'Random Thing 1'
+            doc_topic_distr = random_state.gamma(100., 0.01, (n_samples, n_topics))
+        else:
+            doc_topic_distr = np.ones((n_samples, n_topics))
     else:
-        doc_topic_distr = np.ones((n_samples, n_topics))
+        doc_topic_distr = GAMMA_init
 
     # In the literature, this is `exp(E[log(theta)])`
     exp_doc_topic = np.exp(_dirichlet_expectation_2d(doc_topic_distr))
@@ -326,9 +330,9 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         self.exp_dirichlet_component_ = np.exp(
             _dirichlet_expectation_2d(self.components_))
         
-        print "Init exp " + str(self.exp_dirichlet_component_)
 
-    def _e_step(self, X, cal_sstats, random_init, parallel=None, weights = None):
+    def _e_step(self, X, cal_sstats, random_init, parallel=None, weights = None,
+                GAMMA_init = None):
         """E-step in EM update.
         Parameters
         ----------
@@ -369,7 +373,8 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                               self.max_doc_update_iter,
                                               self.mean_change_tol, cal_sstats,
                                               random_state,
-                                              weights = weights)
+                                              weights = weights,
+                                              GAMMA_init = GAMMA_init)
             for idx_slice in gen_even_slices(X.shape[0], n_jobs))
 
         # merge result
@@ -388,7 +393,8 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         return (doc_topic_distr, suff_stats)
 
-    def _em_step(self, X, total_samples, batch_update, parallel=None, weights = None):
+    def _em_step(self, X, total_samples, batch_update, parallel=None, 
+                 weights = None, GAMMA_init = None):
         """EM update for 1 iteration.
         update `_component` by batch VB or online VB.
         Parameters
@@ -414,7 +420,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             
         # E-step, make the init non-random
         _, suff_stats = self._e_step(X, cal_sstats=True, random_init=False,
-                                     parallel=parallel, weights = weights)
+                                     parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
         # M-step
         if batch_update:
             self.components_ = self.topic_word_prior_ + suff_stats
@@ -482,7 +488,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         return self
 
-    def fit(self, X, y=None, weights = None, BETA_init = None):
+    def fit(self, X, y=None, weights = None, BETA_init = None, GAMMA_init = None):
         """Learn model for the data X with variational Bayes method.
         When `learning_method` is 'online', use mini-batch update.
         Otherwise, use batch update.
@@ -530,11 +536,11 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 if learning_method == 'online':
                     for idx_slice in gen_batches(n_samples, batch_size):
                         self._em_step(X[idx_slice, :], total_samples=n_samples,
-                                      batch_update=False, parallel=parallel, weights = weights)
+                                      batch_update=False, parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
                 else:
                     # batch update
                     self._em_step(X, total_samples=n_samples,
-                                  batch_update=True, parallel=parallel, weights = weights)
+                                  batch_update=True, parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
                 
                 #Break if converged.
                 if mean_change2D(prior_components, self.components_) < self.mean_change_tol:
@@ -546,7 +552,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
                     doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
                                                        random_init=False,
-                                                       parallel=parallel)
+                                                       parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
                     bound = self._perplexity_precomp_distr(X, doc_topics_distr,
                                                            sub_sampling=False)
                     if self.verbose:
@@ -565,13 +571,13 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         # calculate final perplexity value on train set
         doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
                                            random_init=False,
-                                           parallel=parallel)
+                                           parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
         self.bound_ = self._perplexity_precomp_distr(X, doc_topics_distr,
                                                      sub_sampling=False)
 
         return self
 
-    def _unnormalized_transform(self, X, weights = None):
+    def _unnormalized_transform(self, X, weights = None, GAMMA_init = None):
         """Transform data X according to fitted model.
         Parameters
         ----------
@@ -598,11 +604,11 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 (n_features, self.components_.shape[1]))
 
         doc_topic_distr, _ = self._e_step(X, cal_sstats=False,
-                                          random_init=False, weights = weights)
+                                          random_init=False, weights = weights, GAMMA_init = GAMMA_init)
 
         return doc_topic_distr
 
-    def transform(self, X, weights = None):
+    def transform(self, X, weights = None, GAMMA_init = None):
         """Transform data X according to the fitted model.
            .. versionchanged:: 0.18
               *doc_topic_distr* is now normalized
@@ -617,7 +623,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         """
         if weights is None:
             weights = np.repeat(1.0, np.shape(X)[1])
-        doc_topic_distr = self._unnormalized_transform(X, weights = weights)
+        doc_topic_distr = self._unnormalized_transform(X, weights = weights, GAMMA_init = GAMMA_init)
         #Apply weighting
         
         
