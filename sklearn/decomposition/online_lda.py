@@ -90,6 +90,8 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
             doc_topic_distr = np.ones((n_samples, n_topics))
     else:
         doc_topic_distr = GAMMA_init
+        print "Doc Topic Distr"
+        print doc_topic_distr
 
     # In the literature, this is `exp(E[log(theta)])`
     exp_doc_topic = np.exp(_dirichlet_expectation_2d(doc_topic_distr))
