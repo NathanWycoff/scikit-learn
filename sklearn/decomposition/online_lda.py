@@ -82,6 +82,7 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
         weights = np.repeat(1.0, np.shape(X)[1])
     
     if random_state:
+        print 'Random Thing 1'
         doc_topic_distr = random_state.gamma(100., 0.01, (n_samples, n_topics))
     else:
         doc_topic_distr = np.ones((n_samples, n_topics))
@@ -311,12 +312,15 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         init_var = 1. / init_gamma
         # In the literature, this is called `lambda`
         if BETA_init is None:
+            print 'Random Thing 2'
             self.components_ = self.random_state_.gamma(
                 init_gamma, init_var, (self.n_topics, n_features))
-            print "Initial Beta Comps" + str(self.components_)
+            if self.verbose > 1:
+                print "Initial Beta Comps" + str(self.components_)
         else:
             self.components_ = BETA_init
-            print "Initial Beta Comps" + str(self.components_)
+            if self.verbose > 1:
+                print "Initial Beta Comps" + str(self.components_)
             
         # In the literature, this is `exp(E[log(beta)])`
         self.exp_dirichlet_component_ = np.exp(
@@ -534,9 +538,10 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 
                 #Break if converged.
                 if mean_change2D(prior_components, self.components_) < self.mean_change_tol:
-                    print "Broke after %s iterations" % i
+                    if self.verbose > 0:
+                        print "Broke after %s iterations" % i
                     break
-
+                
                 # check perplexity
                 if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
                     doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
