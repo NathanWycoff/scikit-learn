@@ -296,7 +296,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         self.random_state_ = check_random_state(self.random_state)
         self.n_batch_iter_ = 1
         self.n_iter_ = 0
-
+        
         if self.doc_topic_prior is None:
             self.doc_topic_prior_ = 1. / self.n_topics
         else:
@@ -306,17 +306,18 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             self.topic_word_prior_ = 1. / self.n_topics
         else:
             self.topic_word_prior_ = self.topic_word_prior
-
+            
         init_gamma = 100.
         init_var = 1. / init_gamma
         # In the literature, this is called `lambda`
         if BETA_init is None:
             self.components_ = self.random_state_.gamma(
                 init_gamma, init_var, (self.n_topics, n_features))
+            print "Initial Beta Comps" + str(self.components_)
         else:
             self.components_ = BETA_init
             print "Initial Beta Comps" + str(self.components_)
-
+            
         # In the literature, this is `exp(E[log(beta)])`
         self.exp_dirichlet_component_ = np.exp(
             _dirichlet_expectation_2d(self.components_))
