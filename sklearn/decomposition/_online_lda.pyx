@@ -30,7 +30,7 @@ def mean_change(np.ndarray[ndim=1, dtype=np.float64_t] arr_1,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def mean_change2d(np.ndarray[ndim=2, dtype=np.float64_t] arr_1,
+def mean_change2D(np.ndarray[ndim=2, dtype=np.float64_t] arr_1,
                 np.ndarray[ndim=2, dtype=np.float64_t] arr_2):
     """Calculate the mean difference between two 2D arrays.
 

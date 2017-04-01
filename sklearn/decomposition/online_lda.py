@@ -24,7 +24,7 @@ from ..externals.joblib import Parallel, delayed
 from ..externals.six.moves import xrange
 from ..exceptions import NotFittedError
 
-from ._online_lda import (mean_change, _dirichlet_expectation_1d,
+from ._online_lda import (mean_change, mean_change2D, _dirichlet_expectation_1d,
                           _dirichlet_expectation_2d)
 
 EPS = np.finfo(np.float).eps
@@ -530,7 +530,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                   batch_update=True, parallel=parallel, weights = weights)
                 
                 #Break if converged.
-                if mean_change(self.components_, self.components_) < self.mean_change_tol:
+                if mean_change2D(self.components_, self.components_) < self.mean_change_tol:
                     print "Broke after %s iterations" % i
                     break
 
