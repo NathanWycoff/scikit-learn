@@ -610,8 +610,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         result = LDA_Results()
         
         result.GAMMA = doc_topic_distr
-        result.BETA = self.components_
-        result.BETA_exp = self.exp_dirichlet_component_
+        result.BETA = self.components_ / self.components_.sum(axis=1)[:, np.newaxis]
         
         return result
 
