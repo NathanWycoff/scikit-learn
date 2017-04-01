@@ -544,7 +544,10 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                         break
                     last_bound = bound
                 self.n_iter_ += 1
-
+        
+        print "Iters: " + str(i)
+        print "MaxIters: " + str(max_iter)
+        
         # calculate final perplexity value on train set
         doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
                                            random_init=False,
