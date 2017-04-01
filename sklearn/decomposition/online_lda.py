@@ -512,7 +512,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             learning_method = 'online'
 
         batch_size = self.batch_size
-
+        
         # initialize parameters
         self._init_latent_vars(n_features, BETA_init = BETA_init)
         # change to perplexity later
@@ -526,12 +526,13 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                       batch_update=False, parallel=parallel, weights = weights)
                 else:
                     # batch update
-                    print "Before: " 
-                    print self.components_
                     self._em_step(X, total_samples=n_samples,
                                   batch_update=True, parallel=parallel, weights = weights)
-                    print "After:  " 
-                    print self.components_
+                
+                #Break if converged.
+                if mean_change(self.components_, self.components_) < self.mean_change_tol:
+                    print "Broke after %s iterations" % i
+                    break
 
                 # check perplexity
                 if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
@@ -548,9 +549,10 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                         break
                     last_bound = bound
                 self.n_iter_ += 1
+            
+            if i == max_iter-1:
+                print "WARN: Max Iters Reached"
         
-        print "Iters: " + str(i)
-        print "MaxIters: " + str(max_iter)
         
         # calculate final perplexity value on train set
         doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
