@@ -530,9 +530,9 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                   batch_update=True, parallel=parallel, weights = weights)
                 
                 #Break if converged.
-                if mean_change2D(self.components_, self.components_) < self.mean_change_tol:
-                    print "Broke after %s iterations" % i
-                    break
+                #if mean_change2D(self.components_, self.components_) < self.mean_change_tol:
+                #    print "Broke after %s iterations" % i
+                #    break
 
                 # check perplexity
                 if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
@@ -546,6 +546,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                               % (i + 1, bound))
 
                     if last_bound and abs(last_bound - bound) < self.perp_tol:
+                        print "perp Broke after %s iterations" % i
                         break
                     last_bound = bound
                 self.n_iter_ += 1
