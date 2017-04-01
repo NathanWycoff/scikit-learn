@@ -526,8 +526,12 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                       batch_update=False, parallel=parallel, weights = weights)
                 else:
                     # batch update
+                    print "Before: " 
+                    print self.components_
                     self._em_step(X, total_samples=n_samples,
                                   batch_update=True, parallel=parallel, weights = weights)
+                    print "After:  " 
+                    print self.components_
 
                 # check perplexity
                 if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
