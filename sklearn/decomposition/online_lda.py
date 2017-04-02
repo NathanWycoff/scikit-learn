@@ -277,6 +277,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.random_state = random_state
+        self.changes = []
 
     def _check_params(self):
         """Check model parameters."""
@@ -545,7 +546,9 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                   batch_update=True, parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
                 
                 #Break if converged.
-                if mean_change2D(prior_components, self.components_) < self.mean_change_tol:
+                change = mean_change2D(prior_components, self.components_)
+                changes.append(change)
+                if change < self.mean_change_tol:
                     if self.verbose > 0:
                         print "Broke after %s iterations" % i
                     break
