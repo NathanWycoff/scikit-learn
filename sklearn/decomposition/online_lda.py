@@ -547,7 +547,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 
                 #Break if converged.
                 change = mean_change2D(prior_components, self.components_)
-                changes.append(change)
+                self.changes.append(change)
                 if change < self.mean_change_tol:
                     if self.verbose > 0:
                         print "Broke after %s iterations" % i
