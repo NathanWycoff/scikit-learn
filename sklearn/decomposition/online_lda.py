@@ -484,7 +484,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         return self
 
-    def fit(self, X, y=None, weights = None, BETA_init = None):
+    def fit(self, X, y=None,  continuing = False, weights = None, BETA_init = None):
         """Learn model for the data X with variational Bayes method.
         When `learning_method` is 'online', use mini-batch update.
         Otherwise, use batch update.
@@ -495,6 +495,9 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             
         weights : np.array
             Weights for weighted latent dirichlet allocation
+            
+        continuing : bool
+            Have we already called fit? if so, skip initializations.
         Returns
         -------
         self
@@ -519,8 +522,10 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         batch_size = self.batch_size
         
-        # initialize parameters
-        self._init_latent_vars(n_features, BETA_init = BETA_init)
+        # initialize parameters if not already done so.
+        if continuing:
+            self._init_latent_vars(n_features, BETA_init = BETA_init)
+        
         # change to perplexity later
         last_bound = None
         n_jobs = _get_n_jobs(self.n_jobs)
@@ -575,95 +580,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         return self
     
-    def keep_fit(self, X, y=None, weights = None, BETA_init = None):
-        """After calling fit, this function should 'continue' a fit, but
-        perhaps with a different version of 
-        Parameters
-        ----------
-        X : array-like or sparse matrix, shape=(n_samples, n_features)
-            Document word matrix.
-            
-        weights : np.array
-            Weights for weighted latent dirichlet allocation
-        Returns
-        -------
-        self
-        """
-        
-        if weights is None:
-            weights = np.repeat(1.0, np.shape(X)[1])
-            
-        
-        self._check_params()
-        X = self._check_non_neg_array(X, "LatentDirichletAllocation.fit")
-        n_samples, n_features = X.shape
-        max_iter = self.max_iter
-        evaluate_every = self.evaluate_every
-        learning_method = self.learning_method
-        if learning_method == None:
-            warnings.warn("The default value for 'learning_method' will be "
-                          "changed from 'online' to 'batch' in the release 0.20. "
-                          "This warning was introduced in 0.18.",
-                          DeprecationWarning)
-            learning_method = 'online'
-
-        batch_size = self.batch_size
-        
-        # change to perplexity later
-        last_bound = None
-        n_jobs = _get_n_jobs(self.n_jobs)
-        with Parallel(n_jobs=n_jobs, verbose=max(0, self.verbose - 1)) as parallel:
-            for i in xrange(max_iter):
-                #Store the old BETAs for storage
-                prior_components = np.copy(self.components_)
-                
-                if learning_method == 'online':
-                    for idx_slice in gen_batches(n_samples, batch_size):
-                        self._em_step(X[idx_slice, :], total_samples=n_samples,
-                                      batch_update=False, parallel=parallel, weights = weights)
-                else:
-                    # batch update
-                    self._em_step(X, total_samples=n_samples,
-                                  batch_update=True, parallel=parallel, weights = weights)
-                
-                #Break if converged.
-                change = mean_change2D(prior_components, self.components_)
-                self.changes.append(change)
-                if change < self.mean_change_tol:
-                    if self.verbose > 0:
-                        print "Broke after %s iterations" % i
-                    break
-                
-                # check perplexity
-                if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
-                    doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
-                                                       random_init=False,
-                                                       parallel=parallel, weights = weights)
-                    bound = self._perplexity_precomp_distr(X, doc_topics_distr,
-                                                           sub_sampling=False)
-                    if self.verbose:
-                        print('iteration: %d, perplexity: %.4f'
-                              % (i + 1, bound))
-
-                    if last_bound and abs(last_bound - bound) < self.perp_tol:
-                        break
-                    last_bound = bound
-                self.n_iter_ += 1
-            
-            if i == max_iter-1:
-                print "WARN: Max Iters Reached"
-        
-        
-        # calculate final perplexity value on train set
-        doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
-                                           random_init=False,
-                                           parallel=parallel, weights = weights)
-        self.bound_ = self._perplexity_precomp_distr(X, doc_topics_distr,
-                                                     sub_sampling=False)
-
-        return self
-
-    def _unnormalized_transform(self, X, weights = None, GAMMA_init = None):
+    def _unnormalized_transform(self, X, weights = None):
         """Transform data X according to fitted model.
         Parameters
         ----------
@@ -690,11 +607,11 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 (n_features, self.components_.shape[1]))
 
         doc_topic_distr, _ = self._e_step(X, cal_sstats=False,
-                                          random_init=False, weights = weights, GAMMA_init = GAMMA_init)
+                                          random_init=False, weights = weights)
 
         return doc_topic_distr
 
-    def transform(self, X, weights = None, GAMMA_init = None):
+    def transform(self, X, weights = None):
         """Transform data X according to the fitted model.
            .. versionchanged:: 0.18
               *doc_topic_distr* is now normalized
@@ -709,7 +626,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         """
         if weights is None:
             weights = np.repeat(1.0, np.shape(X)[1])
-        doc_topic_distr = self._unnormalized_transform(X, weights = weights, GAMMA_init = GAMMA_init)
+        doc_topic_distr = self._unnormalized_transform(X, weights = weights)
         #Apply weighting
         
         
