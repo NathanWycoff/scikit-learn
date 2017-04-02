@@ -43,7 +43,7 @@ class LDA_Results(object):
 def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
                              max_iters,
                              mean_change_tol, cal_sstats, random_state, 
-                             weights = None, GAMMA_init = None):
+                             weights = None):
     """E-step: update document-topic distribution.
     Parameters
     ----------
@@ -82,16 +82,11 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
     if weights is None:
         weights = np.repeat(1.0, np.shape(X)[1])
     
-    if GAMMA_init is None:
-        if random_state:
-            print 'Random Thing 1'
-            doc_topic_distr = random_state.gamma(100., 0.01, (n_samples, n_topics))
-        else:
-            doc_topic_distr = np.ones((n_samples, n_topics))
+    if random_state:
+        print 'Random Thing 1'
+        doc_topic_distr = random_state.gamma(100., 0.01, (n_samples, n_topics))
     else:
-        doc_topic_distr = GAMMA_init
-        print "Doc Topic Distr"
-        print doc_topic_distr
+        doc_topic_distr = np.ones((n_samples, n_topics))
 
     # In the literature, this is `exp(E[log(theta)])`
     exp_doc_topic = np.exp(_dirichlet_expectation_2d(doc_topic_distr))
@@ -334,8 +329,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             _dirichlet_expectation_2d(self.components_))
         
 
-    def _e_step(self, X, cal_sstats, random_init, parallel=None, weights = None,
-                GAMMA_init = None):
+    def _e_step(self, X, cal_sstats, random_init, parallel=None, weights = None):
         """E-step in EM update.
         Parameters
         ----------
@@ -376,8 +370,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                               self.max_doc_update_iter,
                                               self.mean_change_tol, cal_sstats,
                                               random_state,
-                                              weights = weights,
-                                              GAMMA_init = GAMMA_init)
+                                              weights = weights)
             for idx_slice in gen_even_slices(X.shape[0], n_jobs))
 
         # merge result
@@ -397,7 +390,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         return (doc_topic_distr, suff_stats)
 
     def _em_step(self, X, total_samples, batch_update, parallel=None, 
-                 weights = None, GAMMA_init = None):
+                 weights = None):
         """EM update for 1 iteration.
         update `_component` by batch VB or online VB.
         Parameters
@@ -423,7 +416,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             
         # E-step, make the init non-random
         _, suff_stats = self._e_step(X, cal_sstats=True, random_init=False,
-                                     parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
+                                     parallel=parallel, weights = weights)
         # M-step
         if batch_update:
             self.components_ = self.topic_word_prior_ + suff_stats
@@ -491,7 +484,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         return self
 
-    def fit(self, X, y=None, weights = None, BETA_init = None, GAMMA_init = None):
+    def fit(self, X, y=None, weights = None, BETA_init = None):
         """Learn model for the data X with variational Bayes method.
         When `learning_method` is 'online', use mini-batch update.
         Otherwise, use batch update.
@@ -539,11 +532,11 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 if learning_method == 'online':
                     for idx_slice in gen_batches(n_samples, batch_size):
                         self._em_step(X[idx_slice, :], total_samples=n_samples,
-                                      batch_update=False, parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
+                                      batch_update=False, parallel=parallel, weights = weights)
                 else:
                     # batch update
                     self._em_step(X, total_samples=n_samples,
-                                  batch_update=True, parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
+                                  batch_update=True, parallel=parallel, weights = weights)
                 
                 #Break if converged.
                 change = mean_change2D(prior_components, self.components_)
@@ -557,7 +550,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
                     doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
                                                        random_init=False,
-                                                       parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
+                                                       parallel=parallel, weights = weights)
                     bound = self._perplexity_precomp_distr(X, doc_topics_distr,
                                                            sub_sampling=False)
                     if self.verbose:
@@ -576,7 +569,95 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         # calculate final perplexity value on train set
         doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
                                            random_init=False,
-                                           parallel=parallel, weights = weights, GAMMA_init = GAMMA_init)
+                                           parallel=parallel, weights = weights)
+        self.bound_ = self._perplexity_precomp_distr(X, doc_topics_distr,
+                                                     sub_sampling=False)
+
+        return self
+    
+    def keep_fit(self, X, y=None, weights = None, BETA_init = None):
+        """After calling fit, this function should 'continue' a fit, but
+        perhaps with a different version of 
+        Parameters
+        ----------
+        X : array-like or sparse matrix, shape=(n_samples, n_features)
+            Document word matrix.
+            
+        weights : np.array
+            Weights for weighted latent dirichlet allocation
+        Returns
+        -------
+        self
+        """
+        
+        if weights is None:
+            weights = np.repeat(1.0, np.shape(X)[1])
+            
+        
+        self._check_params()
+        X = self._check_non_neg_array(X, "LatentDirichletAllocation.fit")
+        n_samples, n_features = X.shape
+        max_iter = self.max_iter
+        evaluate_every = self.evaluate_every
+        learning_method = self.learning_method
+        if learning_method == None:
+            warnings.warn("The default value for 'learning_method' will be "
+                          "changed from 'online' to 'batch' in the release 0.20. "
+                          "This warning was introduced in 0.18.",
+                          DeprecationWarning)
+            learning_method = 'online'
+
+        batch_size = self.batch_size
+        
+        # change to perplexity later
+        last_bound = None
+        n_jobs = _get_n_jobs(self.n_jobs)
+        with Parallel(n_jobs=n_jobs, verbose=max(0, self.verbose - 1)) as parallel:
+            for i in xrange(max_iter):
+                #Store the old BETAs for storage
+                prior_components = np.copy(self.components_)
+                
+                if learning_method == 'online':
+                    for idx_slice in gen_batches(n_samples, batch_size):
+                        self._em_step(X[idx_slice, :], total_samples=n_samples,
+                                      batch_update=False, parallel=parallel, weights = weights)
+                else:
+                    # batch update
+                    self._em_step(X, total_samples=n_samples,
+                                  batch_update=True, parallel=parallel, weights = weights)
+                
+                #Break if converged.
+                change = mean_change2D(prior_components, self.components_)
+                self.changes.append(change)
+                if change < self.mean_change_tol:
+                    if self.verbose > 0:
+                        print "Broke after %s iterations" % i
+                    break
+                
+                # check perplexity
+                if evaluate_every > 0 and (i + 1) % evaluate_every == 0:
+                    doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
+                                                       random_init=False,
+                                                       parallel=parallel, weights = weights)
+                    bound = self._perplexity_precomp_distr(X, doc_topics_distr,
+                                                           sub_sampling=False)
+                    if self.verbose:
+                        print('iteration: %d, perplexity: %.4f'
+                              % (i + 1, bound))
+
+                    if last_bound and abs(last_bound - bound) < self.perp_tol:
+                        break
+                    last_bound = bound
+                self.n_iter_ += 1
+            
+            if i == max_iter-1:
+                print "WARN: Max Iters Reached"
+        
+        
+        # calculate final perplexity value on train set
+        doc_topics_distr, _ = self._e_step(X, cal_sstats=False,
+                                           random_init=False,
+                                           parallel=parallel, weights = weights)
         self.bound_ = self._perplexity_precomp_distr(X, doc_topics_distr,
                                                      sub_sampling=False)
 
