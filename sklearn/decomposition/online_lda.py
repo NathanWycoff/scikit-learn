@@ -523,7 +523,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         batch_size = self.batch_size
         
         # initialize parameters if not already done so.
-        if continuing:
+        if not continuing:
             self._init_latent_vars(n_features, BETA_init = BETA_init)
         
         # change to perplexity later
