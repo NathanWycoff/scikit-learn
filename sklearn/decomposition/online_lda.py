@@ -612,7 +612,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         
         #Specify some params
         low_dimensions = 2
-        high_dimensions = self.K
+        high_dimensions = self.n_topics
         dist_func = euclidean
         
         #Build our points object
