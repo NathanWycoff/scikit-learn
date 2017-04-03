@@ -613,8 +613,8 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         for i in moved:
             current_dict = {}
             
-            current_dict['lowD'] = lowD[i,:]
-            current_dict['highD'] = GAMMA[i,:]
+            current_dict['lowD'] = list(lowD[i,:])
+            current_dict['highD'] = list(GAMMA[i,:])
             
             points[str(i)] = current_dict
             
