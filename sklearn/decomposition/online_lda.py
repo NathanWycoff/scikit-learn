@@ -36,13 +36,6 @@ __location__ = os.path.realpath(
 
 EPS = np.finfo(np.float).eps
 
-def euclidean(u, v, w):
-    u = np.array(u)
-    v = np.array(v)
-    w = np.array(w)
-    dist = np.sqrt((((u - v) ** 2) * w).sum())
-    return dist
-
 class LDA_Results(object):
     """
     Object that holds some of the results of an LDA estimation.
@@ -613,7 +606,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         #Specify some params
         low_dimensions = 2
         high_dimensions = self.n_topics
-        dist_func = euclidean
+        dist_func = 'euclidean'
         
         #Build our points object
         points = {}
