@@ -616,6 +616,8 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             current_dict['lowD'] = lowD[i,:]
             current_dict['highD'] = GAMMA[i,:]
             
+            points[str(i)] = current_dict
+            
             
         print "Points:"
         print points
