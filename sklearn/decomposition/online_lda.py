@@ -27,7 +27,21 @@ from ..exceptions import NotFittedError
 from ._online_lda import (mean_change, mean_change2D, _dirichlet_expectation_1d,
                           _dirichlet_expectation_2d)
 
+import subprocess
+import os
+import json
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
 EPS = np.finfo(np.float).eps
+
+def euclidean(u, v, w):
+    u = np.array(u)
+    v = np.array(v)
+    w = np.array(w)
+    dist = np.sqrt((((u - v) ** 2) * w).sum())
+    return dist
 
 class LDA_Results(object):
     """
@@ -314,7 +328,6 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         init_var = 1. / init_gamma
         # In the literature, this is called `lambda`
         if BETA_init is None:
-            print 'Random Thing 2'
             self.components_ = self.random_state_.gamma(
                 init_gamma, init_var, (self.n_topics, n_features))
             if self.verbose > 1:
@@ -579,6 +592,62 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                                      sub_sampling=False)
 
         return self
+    
+    def imds(self, lowD, GAMMA, moved):
+        """
+        Do an inverse fit to get topic weights.
+        
+        lowD : np.ndarray
+            all 2D points
+            
+        GAMMA : np.ndarray
+            High D topic mixtures resulting from previous LDA fit.
+            
+        moved : list of ints
+            The indices of the points that the user moved.
+        
+        
+        This code modified from Nebula Pipline
+        """
+        
+        #Specify some params
+        low_dimensions = 2
+        high_dimensions = self.K
+        dist_func = euclidean
+        
+        #Build our points object
+        points = {}
+        for i in moved:
+            current_dict = {}
+            
+            current_dict['lowD'] = lowD[i,:]
+            current_dict['highD'] = GAMMA[i,:]
+            
+        
+        request = {"points": points, 
+                     "highDimensions": high_dimensions, 
+                     "lowDimensions": low_dimensions,
+                     "inverse": True,
+                     "distanceFunc": dist_func
+                     }
+        request = json.dumps(request)
+            
+        print __location__
+        print os.path.join(__location__, 'java/mds.jar')
+        proc = subprocess.Popen(['java', '-jar', os.path.join(__location__, 'java/mds.jar')],
+                                stdin=subprocess.PIPE, 
+                                stdout=subprocess.PIPE)
+        
+        # Submit the json request, read the result, and set the weights
+        output = proc.communicate(request)[0]
+        output = json.loads(output)
+        
+        weights = np.zeros((self.V))
+        weights = output["weights"]
+        
+        return(weights)
+        
+        
     
     def _unnormalized_transform(self, X, weights = None):
         """Transform data X according to fitted model.
