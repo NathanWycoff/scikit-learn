@@ -628,11 +628,11 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         print type(high_dimensions)
         
         print "self.low_dimensions:"
-        print self.low_dimensions
-        print type(self.low_dimensions)
+        print low_dimensions
+        print type(low_dimensions)
         
         print 'dist func'
-        print self.dist_func
+        print dist_func
         
         request = {"points": points, 
                      "highDimensions": high_dimensions, 
