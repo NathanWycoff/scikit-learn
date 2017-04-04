@@ -256,7 +256,6 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
     [3] Matthew D. Hoffman's onlineldavb code. Link:
         http://matthewdhoffman.com//code/onlineldavb.tar
     """
-    print("i changed this yafeel")
     def __init__(self, n_topics=10, doc_topic_prior=None,
                  topic_word_prior=None, learning_method=None,
                  learning_decay=.7, learning_offset=10., max_iter=10,
@@ -618,22 +617,22 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             
             points[str(i)] = current_dict
             
+        if self.verbose > 1:
+            print "Points:"
+            print points
+            print type(points)
             
-        print "Points:"
-        print points
-        print type(points)
-        
-        print "high_dimensions:"
-        print high_dimensions
-        print type(high_dimensions)
-        
-        print "self.low_dimensions:"
-        print low_dimensions
-        print type(low_dimensions)
-        
-        print 'dist func'
-        print dist_func
-        
+            print "high_dimensions:"
+            print high_dimensions
+            print type(high_dimensions)
+            
+            print "self.low_dimensions:"
+            print low_dimensions
+            print type(low_dimensions)
+            
+            print 'dist func'
+            print dist_func
+            
         request = {"points": points, 
                      "highDimensions": high_dimensions, 
                      "lowDimensions": low_dimensions,
@@ -642,8 +641,8 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                      }
         request = json.dumps(request)
             
-        print __location__
-        print os.path.join(__location__, 'java/mds.jar')
+        #print __location__
+        #print os.path.join(__location__, 'java/mds.jar')
         proc = subprocess.Popen(['java', '-jar', os.path.join(__location__, 'java/mds.jar')],
                                 stdin=subprocess.PIPE, 
                                 stdout=subprocess.PIPE)
@@ -656,6 +655,12 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         
         return(weights)
         
+    def get_induced_weights(self, topic_weights):
+        """
+        Given topic weights, get induced weights on words.
+        """
+        ind_weights = np.dot(topic_weights.T, self.components_)
+        return(ind_weights)
         
     
     def _unnormalized_transform(self, X, weights = None):
