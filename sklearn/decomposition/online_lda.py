@@ -651,7 +651,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         output = proc.communicate(request)[0]
         output = json.loads(output)
         
-        weights = output["weights"]
+        weights = np.array(output["weights"])
         
         return(weights)
         
