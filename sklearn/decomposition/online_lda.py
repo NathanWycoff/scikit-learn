@@ -119,7 +119,7 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
         exp_topic_word_d = exp_topic_word_distr[:, ids]
         
         #Get weights for words in this doc.
-        doc_weights = weights[ids, np.newaxis]
+        doc_weights = np.diag(weights[ids])
 
 
         # Iterate between `doc_topic_d` and `norm_phi` until convergence
