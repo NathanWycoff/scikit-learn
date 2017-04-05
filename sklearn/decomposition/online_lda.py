@@ -117,6 +117,10 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
         # The next one is a copy, since the inner loop overwrites it.
         exp_doc_topic_d = exp_doc_topic[idx_d, :].copy()
         exp_topic_word_d = exp_topic_word_distr[:, ids]
+        
+        #Get weights for words in this doc.
+        doc_weights = weights[ids, np.newaxis]
+
 
         # Iterate between `doc_topic_d` and `norm_phi` until convergence
         for _ in xrange(0, max_iters):
@@ -126,7 +130,7 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
             # exp(E[log(theta_{dk})]) * exp(E[log(beta_{dw})]).
             #print "exp_topic_word_d:"
             #print exp_topic_word_d
-            norm_phi = np.dot(exp_doc_topic_d, np.power(exp_topic_word_d, weights[np.newaxis, ids])) + EPS
+            norm_phi = np.dot(exp_doc_topic_d, exp_topic_word_d) + EPS
             
 #
 #            print "expdoctopicd:"
@@ -142,7 +146,7 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
 #            print "dotted"
 #            print np.dot(cnts / norm_phi, exp_topic_word_d.T)
             doc_topic_d = (exp_doc_topic_d *
-                           np.dot(cnts / norm_phi, exp_topic_word_d.T))
+                           np.dot(np.dot(doc_weights, cnts / norm_phi), exp_topic_word_d.T))
             
             #print "doc_topic1:"
             #print doc_topic_d
