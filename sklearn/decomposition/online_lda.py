@@ -120,8 +120,8 @@ def _update_doc_distribution(X, exp_topic_word_distr, doc_topic_prior,
         
         #Get weights for words in this doc.
         doc_weights = np.diag(weights[ids])
-
-
+        
+        
         # Iterate between `doc_topic_d` and `norm_phi` until convergence
         for _ in xrange(0, max_iters):
             last_d = doc_topic_d
@@ -719,13 +719,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         
         doc_topic_distr /= doc_topic_distr.sum(axis=1)[:, np.newaxis]
 
-        #Store the results
-        result = LDA_Results()
-        
-        result.GAMMA = doc_topic_distr
-        result.BETA = self.components_ / self.components_.sum(axis=1)[:, np.newaxis]
-        
-        return result
+        return doc_topic_distr
 
     def _approx_bound(self, X, doc_topic_distr, sub_sampling):
         """Estimate the variational bound.
