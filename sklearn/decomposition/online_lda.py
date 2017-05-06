@@ -586,7 +586,6 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                                            parallel=parallel, weights = weights)
         self.bound_ = self._perplexity_precomp_distr(X, doc_topics_distr,
                                                      sub_sampling=False)
-
         return self
     
     def imds(self, lowD, GAMMA, moved):
@@ -665,6 +664,23 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         """
         ind_weights = np.dot(topic_weights.T, self.components_)
         return(ind_weights)
+    
+    def get_top_topic_words(self, k, vocab):
+        """
+        Get the top k words from each topic.
+        
+        Vocab should be ordered correctly.
+        """
+        desc = []
+        BETA = self.components_ / np.sum(self.components_, axis = 1)[:,np.newaxis]
+        for i in range(self.components_.shape[0]):
+            inds = np.argsort(-BETA[i,:])[:k]
+            words = [{'word' : vocab[j], 'topic_rel' : BETA[i,j], \
+                      'corpus_rel' : np.sum(BETA[:,j]), 'topic' : i} for j in inds]
+            desc.extend(words)
+                
+        return(desc)
+        
         
     
     def _unnormalized_transform(self, X, weights = None):
@@ -851,6 +867,12 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         else:
             word_cnt = X.sum()
         perword_bound = bound / word_cnt
+        
+        try:
+            np.exp(-1.0 * perword_bound)
+        except Exception as e:
+            print e
+            #print '
 
         return np.exp(-1.0 * perword_bound)
 
