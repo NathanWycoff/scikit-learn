@@ -691,7 +691,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
         """
         BETA = self.components_ / np.sum(self.components_, axis = 1)[:,np.newaxis]
         K = np.shape(BETA)[0]
-        inds = np.argsort(-np.dot(theta.reshape([1, K]), BETA))[:k]
+        inds = np.argsort(-np.dot(theta.reshape([1, K]), BETA))[0][:k]
         words = [vocab[i] for i in inds]
         
         return words
