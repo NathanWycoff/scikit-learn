@@ -681,8 +681,26 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
                 
         return(desc)
         
+    def get_top_doc_words(self, THETA, k, vocab):
+        """
+        Get the top k words describing a document.
+
+        THETA is a LIST (not a matrix) of the topic mixtures for each doc.
+
+        Make sure the vocab order matches what was fed to the fitting process.
+        """
+        desc = []
+        BETA = self.components_ / np.sum(self.components_, axis = 1)[:,np.newaxis]
+        K = np.shape(BETA)[0]
+        for theta in THETA:
+            inds = np.argsort(-np.dot(theta.reshape([1, K]), BETA))[:k]
+            words = [vocab[i] for i in inds]
+            desc.append(words)
         
-    
+        return desc
+
+
+
     def _unnormalized_transform(self, X, weights = None):
         """Transform data X according to fitted model.
         Parameters
