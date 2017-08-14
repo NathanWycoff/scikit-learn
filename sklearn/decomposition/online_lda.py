@@ -540,6 +540,10 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             old_V = self.components_.shape[1]
             new_words = X.shape[1]
             diff = new_words - old_V
+            print "Old V: %s"%old_V
+            print "new_words: %s"%new_words
+            print "diff: %s"%diff
+            print "comps shape: " + str(self.components_.shape)
             self.components_ = np.append(self.components_, np.full([self.n_topics, diff], 1.0), axis = 0)
             self.components_ = np.dot(np.diag(1/np.sum(self.components_, axis = 1)), self.components_)
         
