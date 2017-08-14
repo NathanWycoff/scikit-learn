@@ -531,9 +531,17 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
 
         batch_size = self.batch_size
         
-        # initialize parameters if not already done so.
+        #initialize parameters if not already done so.
+        print "My changes are here"
         if not continuing:
             self._init_latent_vars(n_features, BETA_init = BETA_init)
+        else:
+            #We need to append the new vocab to components, should there be any
+            old_V = self.components_.shape[1]
+            new_words = X.shape[1]
+            diff = new_words - old_V
+            self.components_ = np.append(self.components_, np.full([K, diff]))
+            self.components_ = np.dot(np.diag(1/np.sum(self.components_, axis = 1)), self.components_)
         
         # change to perplexity later
         last_bound = None
