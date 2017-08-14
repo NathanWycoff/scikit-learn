@@ -546,6 +546,7 @@ class LatentDirichletAllocation(BaseEstimator, TransformerMixin):
             print "comps shape: " + str(self.components_.shape)
             self.components_ = np.append(self.components_, np.full([self.n_topics, diff], 1.0), axis = 1)
             self.components_ = np.dot(np.diag(1/np.sum(self.components_, axis = 1)), self.components_)
+            print "compns new shape: " + str(self.components_.shape)
         
         # change to perplexity later
         last_bound = None
